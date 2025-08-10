@@ -1,0 +1,7 @@
+# /kubernetes/namespace.yaml
+# Creates a dedicated namespace to isolate the application components.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: open-webui

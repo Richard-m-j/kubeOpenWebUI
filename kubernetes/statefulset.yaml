@@ -1,0 +1,36 @@
+# /kubernetes/ollama-statefulset.yaml
+# Deploys the Ollama AI engine as a StatefulSet to ensure stable network identity and storage.
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          ports:
+            - containerPort: 11434
+          resources:
+            requests:
+              memory: "3Gi"
+              cpu: "1"
+            limits:
+              memory: "4Gi" # Allow some burst
+              cpu: "2"
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama # Ollama stores models in this directory.
+      volumes:
+        - name: ollama-data
+          persistentVolumeClaim:
+            claimName: ollama-data-pvc # Mount the persistent volume.

@@ -1,0 +1,14 @@
+# /kubernetes/pvc.yaml
+# Defines the request for persistent storage for Ollama models.
+# This will be dynamically provisioned as an AWS EBS volume by the EBS CSI Driver.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce # This volume can be mounted as read-write by a single node.
+  resources:
+    requests:
+      storage: 20Gi # Request 20 GB of storage for the AI models.

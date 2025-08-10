@@ -1,0 +1,32 @@
+# /kubernetes/services.yaml
+# Creates internal and external network endpoints for the application components.
+
+# --- Ollama Service (Internal) ---
+# Provides a stable internal DNS name (ollama-service) for the WebUI to connect to Ollama.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+spec:
+  type: ClusterIP # Only accessible within the cluster.
+  selector:
+    app: ollama
+  ports:
+    - protocol: TCP
+      port: 11434
+      targetPort: 11434
+---
+# --- Open WebUI Service (External-facing via Ingress) ---
+# Exposes the WebUI on a port that the Ingress can target.
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-webui-service
+spec:
+  type: NodePort # Exposes the service on each Node's IP at a static port.
+  selector:
+    app: open-webui
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
