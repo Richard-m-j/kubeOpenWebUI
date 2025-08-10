@@ -49,6 +49,7 @@ module "eks" {
 
   cluster_name = var.cluster_name
   # The cluster_version is intentionally removed to let the module choose the best version.
+  cluster_version = "1.32"
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
