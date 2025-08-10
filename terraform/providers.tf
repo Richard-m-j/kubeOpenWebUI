@@ -5,16 +5,14 @@ data "aws_eks_cluster_auth" "this" {
   name = module.eks.cluster_name
 }
 
-# The Kubernetes provider uses the cluster details from the EKS module
-# and the token from the data source above to authenticate.
+# The Kubernetes provider uses the cluster details and token to authenticate.
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
-# The Helm provider is now explicitly configured with the same details
-# as the Kubernetes provider to ensure the dependency is clear.
+# The Helm provider automatically inherits its configuration from the Kubernetes provider.
 provider "helm" {
   kubernetes = {
     host                   = module.eks.cluster_endpoint

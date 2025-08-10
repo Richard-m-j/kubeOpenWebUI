@@ -7,22 +7,20 @@ resource "kubernetes_config_map" "aws_auth" {
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
-    # This label tells Kubernetes that Terraform is managing this resource.
     labels = {
       "app.kubernetes.io/managed-by" = "Terraform"
     }
   }
 
-  # We construct the data block without reading the existing map first.
   data = {
     "mapRoles" = yamlencode([
-      # Block 1: This adds the worker nodes so they can join the cluster.
+      # Block 1: Adds the worker nodes so they can join the cluster.
       {
         rolearn  = module.eks.eks_managed_node_groups["main"].iam_role_arn
         username = "system:node:{{EC2PrivateDNSName}}"
         groups   = ["system:bootstrappers", "system:nodes"]
       },
-      # Block 2: This adds your IAM role as a cluster administrator.
+      # Block 2: Adds your IAM role as a cluster administrator.
       {
         rolearn  = data.aws_caller_identity.current.arn
         username = "admin"

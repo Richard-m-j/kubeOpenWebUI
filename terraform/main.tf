@@ -1,7 +1,5 @@
 # /terraform/main.tf
 
-data "aws_caller_identity" "current" {}
-
 terraform {
   required_providers {
     aws = {
@@ -14,6 +12,9 @@ terraform {
 provider "aws" {
   region = var.aws_region
 }
+
+# This data source gets your current IAM identity to grant it admin access later.
+data "aws_caller_identity" "current" {}
 
 data "aws_availability_zones" "available" {}
 
@@ -56,10 +57,9 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
+  # Forces public endpoint access to prevent network timeouts from your runner.
   cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = false
-
-  # The aws_auth_roles block has been REMOVED from here.
 
   eks_managed_node_groups = {
     main = {
@@ -68,27 +68,6 @@ module "eks" {
       min_size       = 1
       max_size       = 3
       desired_size   = 2
-    }
-  }
-
-  cluster_security_group_additional_rules = {
-    terraform_runner_https = {
-      description = "Allow Terraform runner to access the EKS cluster API"
-      protocol    = "tcp"
-      from_port   = 443
-      to_port     = 443
-      type        = "ingress"
-      cidr_blocks = [module.vpc.vpc_cidr_block]
-    }
-  }
-
-
-  # Installs essential drivers for storage and networking.
-  # The EBS CSI Driver is required for the PersistentVolumeClaim.
-  # The AWS Load Balancer Controller is required for the Ingress resource.
-  cluster_addons = {
-    aws-ebs-csi-driver = {
-      most_recent = true
     }
   }
 }

@@ -1,12 +1,11 @@
 # /terraform/load-balancer.tf
 
-# This leverages an existing Terraform module to create the required IAM role
-# that the Load Balancer Controller will use.
-module "lb_role" {
+# This uses a module to create a dedicated IAM role for the Load Balancer Controller.
+module "iam_role_for_service_account" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.39.0" # Use a specific version for stability
+  version = "5.39.0"
 
-  role_name_prefix = "${var.cluster_name}-lb-controller"
+  role_name_prefix = "${var.cluster_name}-lbc"
   attach_load_balancer_controller_policy = true
 
   oidc_providers = {
@@ -23,7 +22,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
-  version    = "1.7.2"
+  version    = "1.7.2" # A known compatible version
 
   set = [
     {
@@ -39,9 +38,14 @@ resource "helm_release" "aws_load_balancer_controller" {
       value = "aws-load-balancer-controller"
     }
   ]
-
-  # Add this block to explicitly wait for the cluster to be ready
+  
+  # This ensures the controller's ServiceAccount is annotated with the IAM role ARN.
+  set {
+    name = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = module.iam_role_for_service_account.iam_role_arn
+  }
+  
   depends_on = [
-    module.eks
+    kubernetes_config_map.aws_auth
   ]
 }
