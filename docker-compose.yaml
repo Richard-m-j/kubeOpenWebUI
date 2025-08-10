@@ -1,0 +1,23 @@
+# docker-compose.yaml (Corrected)
+
+services:
+  # The AI Engine
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ./ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+
+  # The Web Frontend
+  open-webui:
+    # Use the official image from GitHub Container Registry
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "8080:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      - ollama
