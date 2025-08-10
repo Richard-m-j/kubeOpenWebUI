@@ -1,5 +1,7 @@
 # /terraform/main.tf
 
+data "aws_caller_identity" "current" {}
+
 terraform {
   required_providers {
     aws = {
@@ -54,11 +56,18 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  # Explicitly enable public access and disable private access
   cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = false
 
-  # EKS Managed Node Group configuration
+  # Add this block to map the Terraform runner's IAM role to a Kubernetes admin
+  map_roles = [
+    {
+      rolearn  = data.aws_caller_identity.current.arn
+      username = "admin"
+      groups   = ["system:masters"]
+    }
+  ]
+
   eks_managed_node_groups = {
     main = {
       name           = "main-node-group"
@@ -66,6 +75,17 @@ module "eks" {
       min_size       = 1
       max_size       = 3
       desired_size   = 2
+    }
+  }
+
+  cluster_security_group_additional_rules = {
+    terraform_runner_https = {
+      description = "Allow Terraform runner to access the EKS cluster API"
+      protocol    = "tcp"
+      from_port   = 443
+      to_port     = 443
+      type        = "ingress"
+      cidr_blocks = [module.vpc.vpc_cidr_block]
     }
   }
 
