@@ -89,18 +89,6 @@ module "eks" {
     }
   }
 
-  # This security group rule is still good practice to keep
-  cluster_security_group_additional_rules = {
-    terraform_runner_https = {
-      description = "Allow Terraform runner to access the EKS cluster API"
-      protocol    = "tcp"
-      from_port   = 443
-      to_port     = 443
-      type        = "ingress"
-      cidr_blocks = [module.vpc.vpc_cidr_block]
-    }
-  }
-
 
   # Installs essential drivers for storage and networking.
   # The EBS CSI Driver is required for the PersistentVolumeClaim.
