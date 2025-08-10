@@ -45,7 +45,7 @@ module "vpc" {
 # Provisions the EKS cluster control plane and worker nodes.
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
- version = "20.8.4"
+  version = "20.8.4"
 
   cluster_name = var.cluster_name
   # The cluster_version is intentionally removed to let the module choose the best version.
@@ -54,7 +54,8 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  # Disable the private endpoint to force all connections over the public endpoint
+  # Explicitly enable public access and disable private access
+  cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = false
 
   # EKS Managed Node Group configuration
