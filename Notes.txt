@@ -1,3 +1,14 @@
 docker compose exec ollama ollama pull gemma3:1b
 
 sudo k3s kubectl exec -it ollama-0 -n open-webui -- ollama pull gemma3:1b
+
+aws iam attach-role-policy \
+  --role-name eksctl-openwebui-cluster-addon-iamserviceacco-Role1-THJFa7LHnuQF \
+  --policy-arn arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/AWSLoadBalancerControllerIAMPolicy
+
+
+helm upgrade aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=openwebui-cluster \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller
