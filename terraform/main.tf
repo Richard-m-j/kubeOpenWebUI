@@ -1,7 +1,6 @@
-# main.tf
-
 terraform {
   required_version = ">= 1.3.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -22,27 +21,49 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Kubernetes provider must depend on EKS cluster being created
+# Get authentication token for EKS cluster
+data "aws_eks_cluster_auth" "this" {
+  name = module.eks.cluster_name
+}
+
+# Kubernetes provider config (waits for EKS outputs automatically)
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
+# Helm provider config
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     token                  = data.aws_eks_cluster_auth.this.token
   }
 }
 
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
+# -----------------
+# VPC Module
+# -----------------
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.8.1"
+
+  name = "${var.cluster_name}-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
 }
 
-
+# -----------------
 # EKS Cluster
+# -----------------
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.4"
@@ -72,12 +93,15 @@ module "eks" {
   }
 }
 
-# IAM Role for AWS Load Balancer Controller (IRSA)
+# -----------------
+# IAM Role for AWS Load Balancer Controller
+# -----------------
 module "aws_load_balancer_controller_irsa_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.33.0"
 
   role_name = "aws-load-balancer-controller"
+
   attach_load_balancer_controller_policy = true
 
   oidc_providers = {
@@ -93,8 +117,6 @@ resource "kubernetes_namespace" "kube_system" {
   metadata {
     name = "kube-system"
   }
-
-  depends_on = [module.eks]
 }
 
 # Service Account for AWS Load Balancer Controller
@@ -110,7 +132,9 @@ resource "kubernetes_service_account" "aws_load_balancer_controller" {
   depends_on = [module.eks, module.aws_load_balancer_controller_irsa_role]
 }
 
-# Install AWS Load Balancer Controller via Helm
+# -----------------
+# Helm Install: AWS Load Balancer Controller
+# -----------------
 resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
@@ -133,7 +157,6 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = "aws-load-balancer-controller"
   }
 
-  # Properly escaped annotation key for Terraform
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com\\/role-arn"
     value = module.aws_load_balancer_controller_irsa_role.iam_role_arn
