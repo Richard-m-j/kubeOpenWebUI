@@ -45,7 +45,7 @@ module "vpc" {
 # Provisions the EKS cluster control plane and worker nodes.
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.8.4"
+ version = "20.8.4"
 
   cluster_name = var.cluster_name
   # The cluster_version is intentionally removed to let the module choose the best version.
@@ -53,6 +53,9 @@ module "eks" {
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
+
+  # Disable the private endpoint to force all connections over the public endpoint
+  cluster_endpoint_private_access = false
 
   # EKS Managed Node Group configuration
   eks_managed_node_groups = {
@@ -65,7 +68,7 @@ module "eks" {
     }
   }
 
-  # Add this block to allow the instance running Terraform to reach the cluster
+  # This security group rule is still good practice to keep
   cluster_security_group_additional_rules = {
     terraform_runner_https = {
       description = "Allow Terraform runner to access the EKS cluster API"
