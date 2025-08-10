@@ -23,7 +23,7 @@ kind: Service
 metadata:
   name: open-webui-service
 spec:
-  type: NodePort # Exposes the service on each Node's IP at a static port.
+  type: ClusterIP # Exposes the service on each Node's IP at a static port.
   selector:
     app: open-webui
   ports:
