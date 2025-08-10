@@ -59,14 +59,7 @@ module "eks" {
   cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = false
 
-  # Corrected argument name for this module version
-  aws_auth_roles = [
-    {
-      rolearn  = data.aws_caller_identity.current.arn
-      username = "admin"
-      groups   = ["system:masters"]
-    }
-  ]
+  # The aws_auth_roles block has been REMOVED from here.
 
   eks_managed_node_groups = {
     main = {
