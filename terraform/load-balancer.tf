@@ -24,6 +24,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   namespace  = "kube-system"
   version    = "1.7.2" # A known compatible version
 
+  # Corrected syntax: All 'set' values are combined into a single list.
   set = [
     {
       name  = "clusterName"
@@ -36,15 +37,14 @@ resource "helm_release" "aws_load_balancer_controller" {
     {
       name  = "serviceAccount.name"
       value = "aws-load-balancer-controller"
+    },
+    # The service account annotation is now correctly placed inside the list.
+    {
+      name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+      value = module.iam_role_for_service_account.iam_role_arn
     }
   ]
-  
-  # This ensures the controller's ServiceAccount is annotated with the IAM role ARN.
-  set {
-    name = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = module.iam_role_for_service_account.iam_role_arn
-  }
-  
+
   depends_on = [
     kubernetes_config_map.aws_auth
   ]
