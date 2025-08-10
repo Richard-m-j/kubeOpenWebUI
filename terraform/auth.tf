@@ -1,42 +1,38 @@
 # /terraform/auth.tf
 
-# This data source reads the existing aws-auth configmap created by the EKS module.
-# This allows us to add our role without removing the existing node roles.
-data "kubernetes_config_map" "aws_auth" {
+# This resource takes full control of the aws-auth configmap.
+# It builds the entire map from scratch, ensuring both the worker nodes
+# and your admin role have the correct permissions.
+resource "kubernetes_config_map" "aws_auth" {
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
+    # This label tells Kubernetes that Terraform is managing this resource.
+    labels = {
+      "app.kubernetes.io/managed-by" = "Terraform"
+    }
   }
 
-  depends_on = [module.eks.cluster_id]
-}
-
-# This resource takes control of the aws-auth configmap data and adds your role.
-resource "kubernetes_config_map_v1_data" "aws_auth" {
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-
-  force = true
-
+  # We construct the data block without reading the existing map first.
   data = {
-    # The 'try' function handles cases where mapRoles might not exist yet.
-    # The 'yamldecode' function converts the YAML string to a list of maps.
-    # The 'concat' function merges the existing list with our new list item.
-    "mapRoles" = yamlencode(
-      concat(
-        try(yamldecode(data.kubernetes_config_map.aws_auth.data.mapRoles), []),
-        [
-          {
-            rolearn  = data.aws_caller_identity.current.arn
-            username = "admin"
-            groups   = ["system:masters"]
-          }
-        ]
-      )
-    )
+    "mapRoles" = yamlencode([
+      # Block 1: This adds the worker nodes so they can join the cluster.
+      {
+        rolearn  = module.eks.eks_managed_node_groups["main"].iam_role_arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      },
+      # Block 2: This adds your IAM role as a cluster administrator.
+      {
+        rolearn  = data.aws_caller_identity.current.arn
+        username = "admin"
+        groups   = ["system:masters"]
+      }
+    ])
   }
 
-  depends_on = [module.eks.cluster_id]
+  # This ensures the cluster exists before we try to create the configmap.
+  depends_on = [
+    module.eks.cluster_id
+  ]
 }
