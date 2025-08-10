@@ -76,7 +76,7 @@ module "eks" {
       cidr_blocks = [module.vpc.vpc_cidr_block]
     }
   }
-}
+
 
   # Installs essential drivers for storage and networking.
   # The EBS CSI Driver is required for the PersistentVolumeClaim.
