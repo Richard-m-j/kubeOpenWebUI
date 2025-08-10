@@ -13,6 +13,12 @@ provider "kubernetes" {
   token                  = data.aws_eks_cluster_auth.this.token
 }
 
-# The Helm provider is now empty. It will automatically inherit its
-# configuration from the "kubernetes" provider block above.
-provider "helm" {}
+# The Helm provider is now explicitly configured with the same details
+# as the Kubernetes provider to ensure the dependency is clear.
+provider "helm" {
+  kubernetes = {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.this.token
+  }
+}
