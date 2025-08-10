@@ -6,14 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = ">= 2.10"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 2.5"
-    }
   }
 }
 
@@ -22,24 +14,8 @@ provider "aws" {
 }
 
 data "aws_availability_zones" "available" {}
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
-}
 
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.this.token
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    token                  = data.aws_eks_cluster_auth.this.token
-  }
-}
-
+# Creates a dedicated VPC, subnets, and related networking resources for the EKS cluster.
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.5.3"
@@ -66,20 +42,19 @@ module "vpc" {
   }
 }
 
+# Provisions the EKS cluster control plane and worker nodes.
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.4"
 
   cluster_name = var.cluster_name
-  # cluster_version is removed to use the default stable version
+  # The cluster_version is intentionally removed to let the module choose the best version.
+  cluster_version = "1.32"
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  # This flag tells the module to install the controller using Helm
-  # and create the necessary IAM role and service account.
-  enable_aws_load_balancer_controller = true
-
+  # EKS Managed Node Group configuration
   eks_managed_node_groups = {
     main = {
       name           = "main-node-group"
@@ -90,9 +65,14 @@ module "eks" {
     }
   }
 
-  # The controller is no longer listed here
+  # Installs essential drivers for storage and networking.
+  # The EBS CSI Driver is required for the PersistentVolumeClaim.
+  # The AWS Load Balancer Controller is required for the Ingress resource.
   cluster_addons = {
     aws-ebs-csi-driver = {
+      most_recent = true
+    }
+    aws-load-balancer-controller = {
       most_recent = true
     }
   }
