@@ -11,6 +11,7 @@ namespace: open-webui
 resources:
   - namespace.yaml
   - ebs-storageclass.yaml
+  - ingress-class.yaml
   - pvc.yaml
   - statefulset.yaml
   - webui-deployment.yaml
