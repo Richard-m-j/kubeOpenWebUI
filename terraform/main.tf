@@ -13,6 +13,8 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "aws_availability_zones" "available" {}
+
 # Creates a dedicated VPC, subnets, and related networking resources for the EKS cluster.
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -21,10 +23,9 @@ module "vpc" {
   name = "${var.cluster_name}-vpc"
   cidr = "10.0.0.0/16"
 
-  # Adjust slice to take only 2 AZs, and provide 2 subnets for them
-  azs             = slice(data.aws_availability_zones.available.names, 0, 2)
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  azs             = slice(data.aws_availability_zones.available.names, 0, 3)
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 
   enable_nat_gateway   = true
   single_nat_gateway   = true
@@ -41,15 +42,13 @@ module "vpc" {
   }
 }
 
-data "aws_availability_zones" "available" {}
-
 # Provisions the EKS cluster control plane and worker nodes.
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.4"
 
   cluster_name = var.cluster_name
-  # cluster_version = "1.29" # <-- Ensure this line is removed
+  # The cluster_version is intentionally removed to let the module choose the best version.
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
