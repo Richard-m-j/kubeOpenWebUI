@@ -65,6 +65,19 @@ module "eks" {
     }
   }
 
+  # Add this block to allow the instance running Terraform to reach the cluster
+  cluster_security_group_additional_rules = {
+    terraform_runner_https = {
+      description = "Allow Terraform runner to access the EKS cluster API"
+      protocol    = "tcp"
+      from_port   = 443
+      to_port     = 443
+      type        = "ingress"
+      cidr_blocks = [module.vpc.vpc_cidr_block]
+    }
+  }
+}
+
   # Installs essential drivers for storage and networking.
   # The EBS CSI Driver is required for the PersistentVolumeClaim.
   # The AWS Load Balancer Controller is required for the Ingress resource.
