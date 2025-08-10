@@ -1,0 +1,3 @@
+docker compose exec ollama ollama pull gemma3:1b
+
+sudo k3s kubectl exec -it ollama-0 -n open-webui -- ollama pull gemma3:1b
