@@ -59,8 +59,8 @@ module "eks" {
   cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = false
 
-  # Add this block to map the Terraform runner's IAM role to a Kubernetes admin
-  map_roles = [
+  # Corrected argument name for this module version
+  aws_auth_roles = [
     {
       rolearn  = data.aws_caller_identity.current.arn
       username = "admin"
