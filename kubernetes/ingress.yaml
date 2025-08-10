@@ -1,20 +1,15 @@
 # /kubernetes/ingress.yaml
-# Manages external access to the WebUI using the AWS Application Load Balancer.
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: open-webui-ingress
   annotations:
-    # This annotation is no longer needed and should be removed.
-    # kubernetes.io/ingress.class: alb 
+    # This new annotation explicitly tells the controller which subnets to use.
+    alb.ingress.kubernetes.io/subnets: subnet-0b10d45983264c5be, subnet-04d9520b084307b62
     
-    # Creates an internet-facing ALB.
     alb.ingress.kubernetes.io/scheme: internet-facing
-    # Routes traffic directly to pods for better performance.
     alb.ingress.kubernetes.io/target-type: ip
 spec:
-  # This new line explicitly tells the Ingress to use the 'alb' IngressClass.
   ingressClassName: alb
   rules:
     - http:
