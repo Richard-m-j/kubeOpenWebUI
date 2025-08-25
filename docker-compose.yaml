@@ -1,5 +1,4 @@
-# docker-compose.yaml (Corrected)
-
+# docker-compose.yaml
 services:
   # The AI Engine
   ollama:
@@ -10,9 +9,28 @@ services:
     ports:
       - "11434:11434"
 
-  # The Web Frontend
+  # NEW: PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: youruser
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: yourdb
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # NEW: Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  # The Web Frontend (will be updated later)
   open-webui:
-    # Use the official image from GitHub Container Registry
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
     ports:
